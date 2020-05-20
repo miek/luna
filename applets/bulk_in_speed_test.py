@@ -11,7 +11,7 @@ import time
 
 import usb1
 
-from nmigen                  import Elaboratable, Module, ClockDomain, ClockSignal
+from nmigen                  import Elaboratable, Module, ClockDomain, ClockSignal, Signal
 from usb_protocol.emitters   import DeviceDescriptorCollection
 
 from luna                    import top_level_cli
@@ -25,7 +25,7 @@ BULK_ENDPOINT_NUMBER = 1
 MAX_BULK_PACKET_SIZE = 64 if os.getenv('LUNA_FULL_ONLY') else 512
 
 # Set the total amount of data to be used in our speed test.
-TEST_DATA_SIZE = 1 * 1024 * 1024
+TEST_DATA_SIZE = 1024 * 1024 * 1024
 TEST_TRANSFER_SIZE = 16 * 1024
 
 # Size of the host-size "transfer queue" -- this is effectively the number of async transfers we'll
@@ -83,7 +83,7 @@ class USBInSpeedTestDevice(Elaboratable):
         m.submodules.car = platform.clock_domain_generator()
 
         # Create our USB device interface...
-        ulpi = platform.request("target_phy")
+        ulpi = platform.request("host_phy")
         m.submodules.usb = usb = USBDevice(bus=ulpi)
 
         # Add our standard control endpoint to the device.
@@ -97,9 +97,12 @@ class USBInSpeedTestDevice(Elaboratable):
         )
         usb.add_endpoint(stream_ep)
 
+        send = Signal()
+        m.d.usb += send.eq(~send)
+
         # Send entirely zeroes, as fast as we can.
         m.d.comb += [
-            stream_ep.stream.valid    .eq(1),
+            stream_ep.stream.valid    .eq(send),
             stream_ep.stream.payload  .eq(0)
         ]
 
@@ -151,6 +154,10 @@ def run_speed_test():
             # Otherwise, re-submit the transfer.
             transfer.submit()
 
+        #elif status in (2,):
+        #    logging.warning("Transfer timeout, re-submitting...")
+        #    transfer.submit()
+
         else:
             failed_out = status
 
@@ -191,6 +198,9 @@ def run_speed_test():
         end_time = time.time()
         elapsed = end_time - start_time
 
+        bytes_per_second = total_data_exchanged / elapsed
+        logging.info(f"Exchanged {total_data_exchanged / 1000000}MB total in {elapsed}s at {bytes_per_second / 1000000}MB/s.")
+
         # Cancel all of our active transfers.
         for transfer in active_transfers:
             if transfer.isSubmitted():
@@ -202,8 +212,6 @@ def run_speed_test():
             sys.exit(failed_out)
 
 
-        bytes_per_second = total_data_exchanged / elapsed
-        logging.info(f"Exchanged {total_data_exchanged / 1000000}MB total at {bytes_per_second / 1000000}MB/s.")
 
 
 if __name__ == "__main__":
