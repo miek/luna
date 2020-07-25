@@ -51,11 +51,11 @@ class ILAExample(Elaboratable):
 
         # Set our ILA to trigger each time the counter is at a random value.
         # This shows off our example a bit better than counting at zero.
-        m.d.comb += self.ila.trigger.eq(self.counter == 7)
+        m.d.fast += self.ila.trigger.eq(self.counter == 7)
 
         # Grab our I/O connectors.
         leds    = [platform.request("led", i, dir="o") for i in range(0, 6)]
-        spi_bus = synchronize(m, platform.request('debug_spi'), o_domain='fast')
+        spi_bus = synchronize(m, platform.request('debug_spi'), o_domain='sync')
 
         # Attach the LEDs and User I/O to the MSBs of our counter.
         m.d.comb += Cat(leds).eq(self.counter[-7:-1])
