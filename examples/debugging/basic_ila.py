@@ -19,12 +19,13 @@ class ILAExample(Elaboratable):
     """ Gateware module that demonstrates use of the internal ILA. """
 
     def __init__(self):
-        self.counter = Signal(28)
-        self.ila  = SyncSerialILA(signals=[self.counter], sample_depth=32)
+        self.counter = Signal(15)
+        self.shift = Signal(7, reset=1)
+        self.ila  = SyncSerialILA(signals=[self.shift, self.counter], sample_depth=32)
 
     def emit_analysis_vcd(self, filename='-'):
         frontend = create_ila_frontend(self.ila)
-        frontend.emit_vcd(filename)
+        frontend.interactive_display()
 
 
     def elaborate(self, platform):
@@ -33,6 +34,7 @@ class ILAExample(Elaboratable):
 
         # Clock divider / counter.
         m.d.sync += self.counter.eq(self.counter + 1)
+        m.d.sync += self.shift.eq(Cat(self.shift[-1], self.shift[:-1]))
 
         # Set our ILA to trigger each time the counter is at a random value.
         # This shows off our example a bit better than counting at zero.
@@ -43,7 +45,8 @@ class ILAExample(Elaboratable):
         spi_bus = synchronize(m, platform.request('debug_spi'))
 
         # Attach the LEDs and User I/O to the MSBs of our counter.
-        m.d.comb += Cat(leds).eq(self.counter[-7:-1])
+        #m.d.comb += Cat(leds).eq(self.counter[-7:-1])
+        m.d.comb += Cat(leds).eq(self.shift)
 
         # Connect our ILA up to our board's aux SPI.
         m.d.comb += self.ila.spi.connect(spi_bus)
