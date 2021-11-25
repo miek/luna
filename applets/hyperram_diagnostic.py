@@ -11,7 +11,7 @@ import logging
 from prompt_toolkit import HTML
 from prompt_toolkit import print_formatted_text as pprint
 
-from amaranth import Signal, Elaboratable, Module
+from amaranth import Cat, Signal, Elaboratable, Module, Mux
 from amaranth.lib.fifo import SyncFIFO
 
 from luna                             import top_level_cli
@@ -20,9 +20,10 @@ from luna.gateware.interface.jtag     import JTAGRegisterInterface
 from luna.gateware.architecture.car   import LunaECP5DomainGenerator
 from luna.gateware.interface.psram    import HyperRAMInterface
 
-REGISTER_RAM_ADDR   = 2
-REGISTER_RAM_FIFO   = 3
-REGISTER_RAM_START  = 4
+REGISTER_RAM_ADDR           = 2
+REGISTER_RAM_FIFO           = 3
+REGISTER_RAM_REGISTER_SPACE = 4
+REGISTER_RAM_START          = 5
 
 
 class HyperRAMDiagnostic(Elaboratable):
@@ -60,6 +61,8 @@ class HyperRAMDiagnostic(Elaboratable):
             write_signal=write_fifo.w_data,
             write_strobe=write_fifo.w_en)
 
+        register_space = registers.add_register(REGISTER_RAM_REGISTER_SPACE, size=1)
+
         start_read = Signal()
         start_write = Signal()
         registers.add_sfr(REGISTER_RAM_START,
@@ -70,7 +73,7 @@ class HyperRAMDiagnostic(Elaboratable):
         m.d.comb += [
             ram_bus.reset.o        .eq(0),
             psram.single_page      .eq(0),
-            psram.register_space   .eq(1),
+            psram.register_space   .eq(register_space),
             psram.final_word       .eq(1),
             psram.perform_write    .eq(start_write),
             psram.start_transfer   .eq(start_read | start_write),
@@ -79,6 +82,9 @@ class HyperRAMDiagnostic(Elaboratable):
             read_fifo.w_data       .eq(psram.read_data),
             read_fifo.w_en         .eq(psram.new_data_ready),
         ]
+
+        pmodA = platform.request("user_pmod", 0, dir="o")
+        pmodB = platform.request("user_pmod", 1, dir="o")
 
         # Return our elaborated module.
         return m
@@ -93,15 +99,17 @@ if __name__ == "__main__":
 
     logging.info("Running basic HyperRAM diagnostics.")
 
-    iterations = 100
+    iterations = 1
 
     passes   = 0
     failures = 0
     failed_tests = set()
 
     def read_hyperram_register(addr):
+        dut.registers.register_write(REGISTER_RAM_REGISTER_SPACE, 1)
         dut.registers.register_write(REGISTER_RAM_ADDR, addr)
         dut.registers.register_read(REGISTER_RAM_START)
+        time.sleep(0.1)
         return dut.registers.register_read(REGISTER_RAM_FIFO)
 
     def test_id_read():
@@ -110,8 +118,27 @@ if __name__ == "__main__":
     def test_config_read():
         return read_hyperram_register(0x800) in (0x8f1f, 0x8f2f)
 
+    def test_mem_readback():
+        dut.registers.register_write(REGISTER_RAM_REGISTER_SPACE, 0)
+        dut.registers.register_write(REGISTER_RAM_FIFO, 0xabcd)
+        for addr in range(10):
+            # Set address.
+            dut.registers.register_write(REGISTER_RAM_ADDR, addr)
+
+            # Write data
+            dut.registers.register_write(REGISTER_RAM_START, 1)
+            time.sleep(0.1)
+
+            # Read data
+            dut.registers.register_read(REGISTER_RAM_START)
+            time.sleep(0.1)
+            result = dut.registers.register_read(REGISTER_RAM_FIFO)
+            print(f"{result=:x} {addr=}")
+
+        return True
+
     # Run each of our tests.
-    for test in (test_id_read, test_config_read):
+    for test in (test_id_read, test_config_read, test_mem_readback):
         for i in range(iterations):
 
             if test():
