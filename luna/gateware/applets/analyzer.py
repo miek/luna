@@ -127,6 +127,7 @@ class USBAnalyzerVendorRequestHandler(ControlRequestHandler):
                 # GET_SPEEDS -- Fetch the device's supported USB speeds
                 with m.State('GET_SPEEDS'):
                     supported_speeds = \
+                        USBAnalyzerSupportedSpeeds.USB_SPEED_AUTO | \
                         USBAnalyzerSupportedSpeeds.USB_SPEED_LOW | \
                         USBAnalyzerSupportedSpeeds.USB_SPEED_FULL | \
                         USBAnalyzerSupportedSpeeds.USB_SPEED_HIGH
@@ -666,16 +667,12 @@ class USBAnalyzerApplet(Elaboratable):
         # Strap our power controls to be in VBUS passthrough by default,
         # on the target port.
         m.d.comb += [
-            platform.request("power_a_port").o      .eq(0),
-            platform.request("pass_through_vbus").o .eq(1),
+            #platform.request("power_a_port").o      .eq(0),
+            #platform.request("pass_through_vbus").o .eq(1),
         ]
 
-        # Tap the D+/D- lines to an LVDS input
-        platform.add_resources([
-            Resource("usb_diff", 0, DiffPairs("C3", "D3", dir="i"), Attrs(IO_TYPE="LVDS")),
-        ])
         usb_diff = Signal()
-        m.d.usb += usb_diff.eq(platform.request("usb_diff", 0))
+        m.d.usb += usb_diff.eq(platform.request("target_usb_diff", 0))
 
         # TODO
         #m.submodules.speed_detector = speed_detector = ResetInserter(state.write)(USBAnalyzerSpeedDetector())
@@ -701,7 +698,7 @@ class USBAnalyzerApplet(Elaboratable):
         ]
 
         # Create our USB uplink interface...
-        uplink_ulpi = platform.request("host_phy")
+        uplink_ulpi = platform.request("aux_phy")
         m.submodules.usb = usb = USBDevice(bus=uplink_ulpi)
 
         # Add our standard control endpoint to the device.
