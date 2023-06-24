@@ -88,11 +88,19 @@ class USBInSpeedTestDevice(Elaboratable):
         )
         usb.add_endpoint(stream_ep)
 
+        # Create a simple, monotonically-increasing data stream, and connect that up to
+        # to our streaming endpoint.
+        counter   = Signal(16)
+
         # Send entirely zeroes, as fast as we can.
         m.d.comb += [
             stream_ep.stream.valid    .eq(1),
-            stream_ep.stream.payload  .eq(0)
+            stream_ep.stream.payload  .eq(counter),
         ]
+
+        # Increment our counter whenever our endpoint is accepting data.
+        with m.If(stream_ep.stream.ready):
+            m.d.usb += counter.eq(counter + 1)
 
         # Connect our device as a high speed device by default.
         m.d.comb += [
