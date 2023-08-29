@@ -19,8 +19,6 @@ from luna.usb2                        import USBDevice, USBStreamInEndpoint, USB
 from usb_protocol.types               import USBRequestType, USBRequestRecipient
 from usb_protocol.emitters            import DeviceDescriptorCollection
 
-from luna.gateware.architecture.adv   import ApolloAdvertiser
-
 VENDOR_ID  = 0x1d50
 PRODUCT_ID = 0x615b
 
@@ -300,11 +298,6 @@ class FlashBridge(Elaboratable):
         # Add our standard control endpoint to the device.
         descriptors = self.create_descriptors()
         control_ep = usb.add_standard_control_endpoint(descriptors)
-
-        if platform.default_usb_connection == "control_phy":
-            # Announce the use of the CONTROL port to Apollo
-            m.submodules.advertiser = advertiser = ApolloAdvertiser()
-            control_ep.add_request_handler(advertiser.default_request_handler())
 
         # Add our vendor request handler to the control endpoint.
         control_ep.add_request_handler(FlashBridgeRequestHandler(0))
