@@ -198,8 +198,8 @@ class USBAnalyzer(Elaboratable):
 
                 # Capture data whenever RxValid is asserted.
                 m.d.comb += [
-                    write_packet    .eq(1),
-                    data_pushed     .eq(1)
+                    write_packet    .eq(byte_received),
+                    data_pushed     .eq(byte_received)
                 ]
 
                 # Advance the write pointer each time we receive a bit.
