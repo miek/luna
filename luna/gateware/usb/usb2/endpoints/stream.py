@@ -152,6 +152,8 @@ class USBMultibyteStreamInEndpoint(Elaboratable):
         #
         self.stream          = StreamInterface(payload_width=byte_width * 8)
         self.interface       = EndpointInterface()
+        self.flush           = Signal()
+        self.discard         = Signal()
 
 
     def elaborate(self, platform):
@@ -163,6 +165,8 @@ class USBMultibyteStreamInEndpoint(Elaboratable):
             max_packet_size=self._max_packet_size
         )
         stream_ep.interface = self.interface
+        stream_ep.flush     = self.flush
+        stream_ep.discard   = self.discard
 
         # Create semantic aliases for byte-wise and word-wise streams;
         # so the code below reads more clearly.

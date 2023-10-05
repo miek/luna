@@ -22,7 +22,7 @@ from usb_protocol.emitters             import DeviceDescriptorCollection
 from usb_protocol.types                import USBRequestType
 
 from luna.gateware.platform            import get_appropriate_platform
-from luna.usb2                         import USBDevice, USBStreamInEndpoint
+from luna.usb2                         import USBDevice, USBStreamInEndpoint, USBMultibyteStreamInEndpoint
 
 from luna.gateware.usb.request.control import ControlRequestHandler
 from luna.gateware.usb.stream          import USBInStreamInterface
@@ -239,15 +239,22 @@ class USBAnalyzerApplet(Elaboratable):
         vendor_request_handler = USBAnalyzerVendorRequestHandler(state)
         control_endpoint.add_request_handler(vendor_request_handler)
 
-        # Add a stream endpoint to our device.
-        stream_ep = USBStreamInEndpoint(
-            endpoint_number=BULK_ENDPOINT_NUMBER,
-            max_packet_size=MAX_BULK_PACKET_SIZE
-        )
-        usb.add_endpoint(stream_ep)
-
         # Create a USB analyzer, and connect a register up to its output.
         m.submodules.analyzer = analyzer = USBAnalyzer(utmi_interface=utmi)
+
+        # Add a stream endpoint to our device.
+        if len(analyzer.stream.payload) == 8:
+            stream_ep = USBStreamInEndpoint(
+                endpoint_number=BULK_ENDPOINT_NUMBER,
+                max_packet_size=MAX_BULK_PACKET_SIZE
+            )
+        else:
+            stream_ep = USBMultibyteStreamInEndpoint(
+                byte_width=len(analyzer.stream.payload)//8,
+                endpoint_number=BULK_ENDPOINT_NUMBER,
+                max_packet_size=MAX_BULK_PACKET_SIZE
+            )
+        usb.add_endpoint(stream_ep)
 
         m.d.comb += [
             # Connect enable signal to host-controlled state register.
