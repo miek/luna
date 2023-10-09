@@ -330,10 +330,6 @@ class USBAnalyzer(Elaboratable):
                         packet_size     .eq(packet_size + 1),
                     ]
 
-                    # If this would be filling up our data memory,
-                    # move to the OVERRUN state.
-                    with m.If(fifo_count + data_pending == self.mem_size - 1):
-                        m.next = "OVERRUN"
 
                 # If we've stopped receiving, write header.
                 with m.If(~self.utmi.rx_active):
