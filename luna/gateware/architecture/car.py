@@ -199,9 +199,9 @@ class LunaDomainGenerator(Elaboratable, metaclass=ABCMeta):
         m = Module()
 
         # Create our clock domains.
-        m.domains.fast = self.fast = ClockDomain()
-        m.domains.sync = self.sync = ClockDomain()
-        m.domains.usb  = self.usb  = ClockDomain()
+        m.domains.fast = self.fast = ClockDomain("fast")
+        m.domains.sync = self.sync = ClockDomain("sync")
+        m.domains.usb  = self.usb  = ClockDomain("usb")
 
         # Call the hook that will create any submodules necessary for all clocks.
         self.create_submodules(m, platform)
