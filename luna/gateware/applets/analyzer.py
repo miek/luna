@@ -215,7 +215,7 @@ class USBAnalyzerApplet(Elaboratable):
 
             # Set our mode to non-driving and to the desired speed.
             utmi.op_mode     .eq(0b01),
-            utmi.xcvr_select .eq(state.current[1:3]),
+            utmi.xcvr_select .eq(USB_SPEED_HIGH),
 
             # Disable all of our terminations, as we want to participate in
             # passive observation.
@@ -224,52 +224,12 @@ class USBAnalyzerApplet(Elaboratable):
             utmi.term_select .eq(0)
         ]
 
-        # Create our USB uplink interface...
-        try:
-            uplink_ulpi = platform.request("control_phy")
-        except ResourceError:
-            uplink_ulpi = platform.request("host_phy")
-        m.submodules.usb = usb = USBDevice(bus=uplink_ulpi)
-
-        # Add our standard control endpoint to the device.
-        descriptors = self.create_descriptors()
-        control_endpoint = usb.add_standard_control_endpoint(descriptors)
-
-        # Add our vendor request handler to the control endpoint.
-        vendor_request_handler = USBAnalyzerVendorRequestHandler(state)
-        control_endpoint.add_request_handler(vendor_request_handler)
-
         # Create a USB analyzer, and connect a register up to its output.
         m.submodules.analyzer = analyzer = USBAnalyzer(utmi_interface=utmi)
 
-        # Add a stream endpoint to our device.
-        if len(analyzer.stream.payload) == 8:
-            stream_ep = USBStreamInEndpoint(
-                endpoint_number=BULK_ENDPOINT_NUMBER,
-                max_packet_size=MAX_BULK_PACKET_SIZE
-            )
-        else:
-            stream_ep = USBMultibyteStreamInEndpoint(
-                byte_width=len(analyzer.stream.payload)//8,
-                endpoint_number=BULK_ENDPOINT_NUMBER,
-                max_packet_size=MAX_BULK_PACKET_SIZE
-            )
-        usb.add_endpoint(stream_ep)
-
         m.d.comb += [
-            # Connect enable signal to host-controlled state register.
-            analyzer.capture_enable     .eq(state.current[0]),
-
-            # Flush endpoint when analyzer is idle with capture disabled.
-            stream_ep.flush             .eq(analyzer.idle & ~analyzer.capture_enable),
-
-            # Discard data buffered by endpoint when the analyzer discards its data.
-            stream_ep.discard           .eq(analyzer.discarding),
-
-            # USB stream uplink.
-            stream_ep.stream            .stream_eq(analyzer.stream),
-
-            usb.connect                 .eq(1),
+            # Connect enable signal
+            analyzer.capture_enable     .eq(1),
 
             # LED indicators.
             platform.request("led", 0).o  .eq(analyzer.capturing),
