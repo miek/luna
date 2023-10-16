@@ -149,6 +149,10 @@ class USBAnalyzerApplet(Elaboratable):
         - DRAM backing for analysis
     """
 
+    def __init__(self, generate_clocks=True):
+        super().__init__()
+        self.generate_clocks = generate_clocks
+
     def create_descriptors(self):
         """ Create the descriptors we want to use for our device. """
 
@@ -192,9 +196,10 @@ class USBAnalyzerApplet(Elaboratable):
         # State register
         m.submodules.state = state = USBAnalyzerState()
 
-        # Generate our clock domains.
-        clocking = LunaECP5DomainGenerator()
-        m.submodules.clocking = clocking
+        if self.generate_clocks:
+            # Generate our clock domains.
+            clocking = LunaECP5DomainGenerator()
+            m.submodules.clocking = clocking
 
         # Create our UTMI translator.
         ulpi = platform.request("target_phy")
