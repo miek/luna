@@ -207,13 +207,10 @@ class USBAnalyzerApplet(Elaboratable):
 
         # Strap our power controls to be in VBUS passthrough by default,
         # on the target port.
-        try:
-            m.d.comb += [
-                platform.request("power_a_port").o      .eq(0),
-                platform.request("pass_through_vbus").o .eq(1),
-            ]
-        except ResourceError:
-            pass
+        m.d.comb += [
+        #    platform.request("power_a_port").o      .eq(0),
+            platform.request("target_c_vbus_en").o .eq(1),
+        ]
 
         # Set up our parameters.
         m.d.comb += [
