@@ -26,7 +26,8 @@ REGISTER_RAM_READ_LENGTH    = 3
 REGISTER_RAM_FIFO           = 4
 REGISTER_RAM_START          = 5
 
-DQS = False
+import os
+DQS = os.environ.get('LUNA_HYPERRAM_DQS', False)
 REG_WIDTH = 32 if DQS else 16
 REG_SHIFT = 16 if DQS else 0
 
