@@ -84,6 +84,9 @@ class HyperRAMDiagnostic(Elaboratable):
 
         start_read = Signal()
         start_write = Signal()
+        start_train_read = Signal()
+        datavalid_delay = Signal()
+        m.d.sync += datavalid_delay.eq(psram.read_ready)
         registers.add_sfr(REGISTER_RAM_START,
             read_strobe=start_read,
             write_strobe=start_write)
@@ -91,7 +94,38 @@ class HyperRAMDiagnostic(Elaboratable):
         read_counter = Signal.like(read_length)
         final_word = Signal()
         m.d.comb += final_word.eq(1)
+        counter = Signal(range(128))
+        timeout = Signal(range(128))
+        readclksel = Signal(3, reset=0)
         with m.FSM() as fsm:
+            with m.State("INIT"):
+                with m.If(psram_phy.phy.ready):
+                    m.d.sync += [
+                        timeout.eq(0),
+                        read_counter.eq(3),
+                    ]
+                    m.d.comb += start_train_read.eq(1)
+                    m.next = "TRAIN"
+
+            with m.State("TRAIN"):
+                m.d.sync += timeout.eq(timeout + 1)
+                m.d.comb += final_word.eq(read_counter == 1)
+                with m.If(psram.read_ready):
+                    m.d.sync += read_counter.eq(read_counter - 1)
+
+                with m.If(timeout == 127):
+                    m.next = "WAIT1"
+                    m.d.sync += counter.eq(counter + 1)
+                    with m.If(counter == 127):
+                        m.next = "IDLE"
+
+                    with m.If(~psram_phy.phy.burstdet):
+                        m.d.sync += readclksel.eq(readclksel + 1)
+                        m.d.sync += counter.eq(0)
+
+            with m.State("WAIT1"):
+                m.next = "INIT"
+
             with m.State("IDLE"):
                 with m.If(start_read):
                     m.d.sync += read_counter.eq(read_length)
@@ -120,13 +154,23 @@ class HyperRAMDiagnostic(Elaboratable):
             psram.register_space   .eq(register_space),
             psram.final_word       .eq(final_word),
             psram.perform_write    .eq(start_write),
-            psram.start_transfer   .eq(start_read | start_write),
+            psram.start_transfer   .eq(start_read | start_write | start_train_read),
             psram.address          .eq(psram_address),
             psram.write_data       .eq(write_fifo.r_data),
             read_fifo.w_data       .eq(psram.read_data),
-            read_fifo.w_en         .eq(psram.read_ready),
+            read_fifo.w_en         .eq(psram.read_ready & ~(fsm.ongoing("INIT") | fsm.ongoing("TRAIN"))),
             write_fifo.r_en        .eq(psram.write_ready),
-            psram_phy.phy.readclksel.eq(2),
+            psram_phy.phy.readclksel.eq(readclksel),
+        ]
+
+        # debug
+        pmod_a = platform.request("user_pmod", 0, dir="o").o
+        m.d.comb += [
+            pmod_a[0].eq(start_train_read),
+            pmod_a[1].eq(psram.read_ready),
+            pmod_a[2].eq(psram_phy.phy.burstdet),
+
+            pmod_a[4:].eq(readclksel),
         ]
 
         # Return our elaborated module.

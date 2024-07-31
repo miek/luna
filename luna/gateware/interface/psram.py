@@ -639,6 +639,9 @@ class HyperRAMDQSInterface(Elaboratable):
                         m.d.sync += self.phy.clk_en.eq(0),
                         m.next = 'RECOVERY'
 
+                with m.If(~self.phy.ready):
+                    m.next = 'IDLE'
+
             # WRITE_DATA -- write a word to the PSRAM
             with m.State("WRITE_DATA"):
                 m.d.sync += [
