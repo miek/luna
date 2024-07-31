@@ -419,11 +419,13 @@ class HyperBusDQSPHY(Record):
                 ('o', 4,  DIR_FANOUT),
                 ('e', 1,  DIR_FANOUT),
             ]),
-            ('cs',        1, DIR_FANOUT),
-            ('reset',     1, DIR_FANOUT),
-            ('read',      2, DIR_FANIN),
-            ('datavalid', 1, DIR_FANOUT),
-            ('burstdet',  1, DIR_FANOUT)
+            ('cs',         1, DIR_FANOUT),
+            ('reset',      1, DIR_FANOUT),
+            ('read',       2, DIR_FANIN),
+            ('datavalid',  1, DIR_FANOUT),
+            ('burstdet',   1, DIR_FANOUT),
+            ('readclksel', 3, DIR_FANIN),
+            ('ready',      1, DIR_FANOUT),
         ])
 
 
@@ -687,7 +689,9 @@ class HyperRAMDQSPHY(Elaboratable):
         lock = Signal()
         uddcntln = Signal()
         counter = Signal(range(9))
+        readclksel = Signal.like(self.phy.readclksel, reset=2)
         m.d.sync += counter.eq(counter + 1)
+        m.d.comb += self.phy.ready.eq(0)
         with m.FSM() as fsm:
             with m.State('INIT'):
                 m.d.sync += [
@@ -721,15 +725,33 @@ class HyperRAMDQSPHY(Elaboratable):
 
             with m.State('UPDATED'):
                 with m.If(counter == 8):
-                    m.next = 'UNPAUSE'
+                    m.next = 'READY'
                     m.d.sync += [
                         pause.eq(0),
                         counter.eq(0),
                     ]
 
-            with m.State('UNPAUSE'):
-                pass
+            with m.State('READY'):
+                m.d.comb += self.phy.ready.eq(1)
+                with m.If(self.phy.readclksel != readclksel):
+                    m.d.sync += [
+                        counter.eq(0),
+                        pause.eq(1),
+                    ]
+                    m.next = 'PAUSE'
 
+            with m.State('PAUSE'):
+                with m.If(counter == 4):
+                    m.d.sync += [
+                        counter.eq(0),
+                        readclksel.eq(self.phy.readclksel),
+                    ]
+                    m.next = 'READCLKSEL'
+
+            with m.State('READCLKSEL'):
+                with m.If(counter == 4):
+                    m.d.sync += pause.eq(0)
+                    m.next = 'READY'
 
         # DQS (RWDS) input
         rwds_o = Signal()
@@ -776,10 +798,7 @@ class HyperRAMDQSPHY(Elaboratable):
                 i_PAUSE=pause,
                 i_READ0=self.phy.read[0],
                 i_READ1=self.phy.read[1],
-                # TODO: may need to tune at runtime by trying different values & checking for BURSTDET high
-                i_READCLKSEL0=0,
-                i_READCLKSEL1=1,
-                i_READCLKSEL2=0,
+                **{f"i_READCLKSEL{i}": readclksel[i] for i in range(len(readclksel))},
 
                 i_RDLOADN=0,
                 i_RDMOVE=0,
