@@ -51,9 +51,6 @@ Support for Device Mode
       - fully-gateware-implemented, with user vendor request handler support
       - :needstest:`complete, could use improvements`
     * -
-      - CPU interface
-      - :inprogress:`working; needs more interfaces & examples`
-    * -
       -
       -
     * - **Bulk Transfers / Endpoints**
@@ -65,9 +62,6 @@ Support for Device Mode
     * -
       - ``OUT`` stream helpers
       - :complete:`feature complete`
-    * -
-      - CPU interface
-      - :inprogress:`working; needs more interfaces & examples`
     * -
       -
       -
@@ -81,9 +75,6 @@ Support for Device Mode
       - status-from-host helper
       - :planned:`planned`
     * -
-      - CPU interface
-      - :inprogress:`working; needs more interfaces & examples`
-    * -
       -
       -
     * - **Isochronous Transfers / Endpoints**
@@ -94,9 +85,6 @@ Support for Device Mode
       - :needstest:`complete; needs examples and testing`
     * -
       - ``OUT`` transfer helpers
-      - :planned:`planned`
-    * -
-      - CPU interface
       - :planned:`planned`
     * -
       -
