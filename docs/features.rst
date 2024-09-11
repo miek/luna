@@ -4,7 +4,6 @@ Status & Support
 
 .. role:: planned
 .. role:: inprogress
-.. role:: needstest
 .. role:: complete
 
 The LUNA library is a work in progress; but many of its features are usable enough for inclusion in your own designs.
@@ -22,7 +21,7 @@ Support for Device Mode
       - Status
     * - **USB Communications**
       - high-/full-speed with ``UTMI`` PHY
-      - :needstest:`complete, needs testing`
+      - :inprogress:`complete, needs testing`
     * -
       - high-/full-speed with ``ULPI`` PHY
       - :complete:`feature complete`
@@ -31,7 +30,7 @@ Support for Device Mode
       - :complete:`feature complete`
     * -
       - super-speed using PIPE PHY
-      - :needstest:`basic support complete; still experimental`
+      - :inprogress:`basic support complete; still experimental`
     * -
       - super-speed using SerDes PHY
       - :inprogress:`in progress`
@@ -49,7 +48,7 @@ Support for Device Mode
       - :complete:`feature complete`
     * -
       - fully-gateware-implemented, with user vendor request handler support
-      - :needstest:`complete, could use improvements`
+      - :inprogress:`complete, could use improvements`
     * -
       -
       -
@@ -70,7 +69,7 @@ Support for Device Mode
       - :complete:`feature complete`
     * -
       - status-to-host helper
-      - :needstest:`complete, needs testing`
+      - :inprogress:`complete, needs testing`
     * -
       - status-from-host helper
       - :planned:`planned`
@@ -82,7 +81,7 @@ Support for Device Mode
       - :planned:`planned`
     * -
       - ``IN`` transfer helpers
-      - :needstest:`complete; needs examples and testing`
+      - :inprogress:`complete; needs examples and testing`
     * -
       - ``OUT`` transfer helpers
       - :planned:`planned`
