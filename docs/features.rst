@@ -86,15 +86,6 @@ Support for Device Mode
     * -
       - ``OUT`` transfer helpers
       - :planned:`planned`
-    * -
-      -
-      -
-    * - **USB Analysis**
-      - basic analysis
-      - :inprogress:`basic analysis working, in progress`
-    * -
-      - full analysis support
-      - :planned:`planned`
 
 
 Support for Host Mode
