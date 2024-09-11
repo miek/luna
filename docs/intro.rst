@@ -8,10 +8,6 @@ Introduction
 Welcome to the LUNA project! LUNA is a full toolkit for working with USB using FPGA technology; and provides
 gateware to enable USB applications.
 
-.. image:: images/board_readme.jpg
-    :align: center
-..
-
 Some things you can use LUNA for, currently:
 
 - **Protocol analysis for Low, Full or High speed USB.** LUNA provides gateware that allow passive USB monitoring.
