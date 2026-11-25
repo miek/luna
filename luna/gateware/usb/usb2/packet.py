@@ -1445,9 +1445,9 @@ class USBInterpacketTimer(Elaboratable):
         with m.Else():
             if not self._fs_only:
                 m.d.comb += [
-                    rx_to_tx_at_min   .eq(counter == self._hs_rx_to_tx_delay[0]),
-                    rx_to_tx_at_max   .eq(counter == self._hs_rx_to_tx_delay[1]),
-                    tx_to_rx_timeout  .eq(counter == self._hs_tx_to_rx_timeout)
+                    rx_to_tx_at_min   .eq(counter == self._ls_rx_to_tx_delay[0]),
+                    rx_to_tx_at_max   .eq(counter == self._ls_rx_to_tx_delay[1]),
+                    tx_to_rx_timeout  .eq(counter == self._ls_tx_to_rx_timeout)
                 ]
 
         # Tie our strobes to each of our consumers.
